@@ -6,7 +6,8 @@
     "outDir": "./lib",
     "strict": true,
     "lib": [
-      "ES2015"
+      "ES2015",
+      "DOM"
     ]
   },
   "include": [

@@ -1,7 +1,8 @@
 import linkSpeed from '../src/index';
 
-jest.mock('axios');
+jest.setTimeout(1000 * 60);
 
 test('Some Test', async () => {
-    await linkSpeed({ samples: 5 });
+    const result = await linkSpeed();
+    console.log(result);
 });
