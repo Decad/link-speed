@@ -4,7 +4,9 @@ Measure your current network speed, designed to be used in a browser for testing
 
 # Install
 
-// TODO npm package
+```
+$ npm i link-speed
+```
 
 # Usage
 
@@ -14,7 +16,7 @@ Link speed is designed to be simple to use and easy to integrate.
 await linkSpeed();
 ```
 
-### Example output
+#### Example output
 
 ```javascript
   {
@@ -25,6 +27,12 @@ await linkSpeed();
 ```
 
 # Options
+
+```javascript
+await linkSpeed({ ...options });
+```
+
+#### Defaults
 
 ```javascript
 {

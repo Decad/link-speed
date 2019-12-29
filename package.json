@@ -1,8 +1,8 @@
 {
   "name": "link-speed",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Determine download and upload speeds",
+  "main": "lib/index.js",
   "scripts": {
     "build": "tsc",
     "format": "prettier --write \"src/**/*.ts\" \"src/**/*.js\"",
@@ -12,8 +12,19 @@
   "files": [
     "lib/**/*"
   ],
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "network speed",
+    "bandwidth",
+    "speedtest",
+    "download",
+    "internet"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Decad/link-speed"
+  },
+  "homepage": "https://github.com/Decad/link-speed",
+  "author": "Declan Cook",
   "license": "MIT",
   "devDependencies": {
     "@types/jest": "^24.0.23",
