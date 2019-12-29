@@ -1,9 +1,11 @@
 import 'whatwg-fetch';
 
 interface Options {
+    [index: string]: any,
     samples: number,
-    url: string | Function
+    downloadUrl: string | Function
     pingUrl: string,
+    uploadUrl: string,
     blobSize: number,
 }
 
@@ -13,8 +15,9 @@ interface RequestConfig {
 
 const defaults: Options = {
     samples: 5,
-    url: (options: Options) => `https://linkspeed.voror.workers.dev/blob/${options.blobSize}`,
+    downloadUrl: (options: Options) => `https://linkspeed.voror.workers.dev/blob/${options.blobSize}`,
     pingUrl: 'https://linkspeed.voror.workers.dev/empty',
+    uploadUrl: 'https://linkspeed.voror.workers.dev/upload',
     blobSize: 4194304
 }
 
@@ -39,6 +42,24 @@ async function avgPerf(fn: Function, noOfSamples: number) {
     return total / noOfSamples;
 }
 
+function getUrl(key: string, options: Options) {
+    let url = '';
+
+    if (typeof options[key] === 'function') {
+        url = options[key](options);
+    } else {
+        url = options[key];
+    }
+
+    return url;
+}
+
+function calculateSpeed(size: number, seconds: number) {
+    const bps = size / seconds;
+    const human = humanReadable(size, seconds);
+    return { bps, human };
+}
+
 async function ping(options: Options) {
     return avgPerf(async () => {
         await request({ url: options.pingUrl });
@@ -46,22 +67,29 @@ async function ping(options: Options) {
 }
 
 async function download(options: Options) {
-    let url = '';
-
-    if (typeof options.url === 'function') {
-        url = options.url(options);
-    } else {
-        url = options.url;
-    }
+    const url = getUrl('downloadUrl', options);
 
     const avgDl = await avgPerf(async () => {
         await request({ url });
     }, options.samples);
 
-    const bps = options.blobSize / (avgDl / 1000);
-    const humanDl = humanReadable(options.blobSize, avgDl / 1000);
+    return calculateSpeed(options.blobSize, avgDl / 1000);
+}
 
-    return { bps, humanDl };
+async function upload(options: Options) {
+    const url = getUrl('uploadUrl', options);
+
+    const avgUp = await avgPerf(async () => {
+        await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/octet-stream',
+            },
+            body: new Uint8Array(options.blobSize / Uint8Array.BYTES_PER_ELEMENT)
+        });
+    }, options.samples);
+
+    return calculateSpeed(options.blobSize, avgUp / 1000);
 }
 
 function humanReadable(bytes: number, seconds: number) {
@@ -80,6 +108,7 @@ export default async (options?: Partial<Options>) => {
     const opts = Object.assign({ ...defaults }, options);
     const rtt = await ping(opts);
     const dl = await download(opts);
+    const up = await upload(opts);
 
-    return { rtt, ...dl };
+    return { rtt, down: dl, up };
 };
