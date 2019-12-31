@@ -1,6 +1,6 @@
 import 'whatwg-fetch';
 
-interface Options {
+type Options = {
     [index: string]: any,
     samples: number,
     downloadUrl: string | Function
@@ -9,8 +9,19 @@ interface Options {
     blobSize: number,
 }
 
-interface RequestConfig {
+type RequestConfig = {
     url: string,
+}
+
+type Speed = {
+    bps: number,
+    human: string
+}
+
+type LinkSpeedResult = {
+    rtt: number,
+    down: Speed,
+    up: Speed
 }
 
 const defaults: Options = {
@@ -21,7 +32,7 @@ const defaults: Options = {
     blobSize: 4194304
 }
 
-async function request(config: RequestConfig) {
+async function request(config: RequestConfig): Promise<void> {
     const res = await fetch(config.url);
     if (!res.ok) {
         throw new Error(`HTTP ${res.status} - ${res.statusText}`);
@@ -30,7 +41,7 @@ async function request(config: RequestConfig) {
     await res.arrayBuffer();
 }
 
-async function avgPerf(fn: Function, noOfSamples: number) {
+async function avgPerf(fn: Function, noOfSamples: number): Promise<number> {
     const samples = [];
     for (let i = 0; i < noOfSamples; i++) {
         let startTime = performance.now();
@@ -42,7 +53,7 @@ async function avgPerf(fn: Function, noOfSamples: number) {
     return total / noOfSamples;
 }
 
-function getUrl(key: string, options: Options) {
+function getUrl(key: string, options: Options): string {
     let url = '';
 
     if (typeof options[key] === 'function') {
@@ -54,19 +65,31 @@ function getUrl(key: string, options: Options) {
     return url;
 }
 
-function calculateSpeed(size: number, seconds: number) {
+function humanReadable(bytes: number, seconds: number): string {
+    const units = [' bps', ' kbps', ' Mbps', ' Gbps', ' Tbps', 'Pbps', 'Ebps', 'Zbps', 'Ybps'];
+
+    let speed = seconds ? bytes * 8 / seconds : 0;
+    let unitNum = 0;
+    while (speed > 1024) {
+        speed = speed / 1024;
+        unitNum++;
+    }
+    return Math.max(speed, 0.1).toFixed(1) + units[unitNum];
+}
+
+function calculateSpeed(size: number, seconds: number): Speed {
     const bps = size / seconds;
     const human = humanReadable(size, seconds);
     return { bps, human };
 }
 
-async function ping(options: Options) {
+async function ping(options: Options): Promise<number> {
     return avgPerf(async () => {
         await request({ url: options.pingUrl });
     }, options.samples);
 }
 
-async function download(options: Options) {
+async function download(options: Options): Promise<Speed> {
     const url = getUrl('downloadUrl', options);
 
     const avgDl = await avgPerf(async () => {
@@ -76,7 +99,7 @@ async function download(options: Options) {
     return calculateSpeed(options.blobSize, avgDl / 1000);
 }
 
-async function upload(options: Options) {
+async function upload(options: Options): Promise<Speed> {
     const url = getUrl('uploadUrl', options);
 
     const avgUp = await avgPerf(async () => {
@@ -92,19 +115,7 @@ async function upload(options: Options) {
     return calculateSpeed(options.blobSize, avgUp / 1000);
 }
 
-function humanReadable(bytes: number, seconds: number) {
-    const units = [' bps', ' kbps', ' Mbps', ' Gbps', ' Tbps', 'Pbps', 'Ebps', 'Zbps', 'Ybps']
-
-    let speed = seconds ? bytes * 8 / seconds : 0
-    let unitNum = 0
-    while (speed > 1024) {
-        speed = speed / 1024
-        unitNum++
-    }
-    return Math.max(speed, 0.1).toFixed(1) + units[unitNum]
-}
-
-export default async (options?: Partial<Options>) => {
+export default async (options?: Partial<Options>): Promise<LinkSpeedResult> => {
     const opts = Object.assign({ ...defaults }, options);
     const rtt = await ping(opts);
     const dl = await download(opts);
